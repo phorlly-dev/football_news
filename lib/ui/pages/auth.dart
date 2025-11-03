@@ -5,8 +5,8 @@ import 'package:football_news/core/utils/snack_bar.dart';
 import 'package:football_news/ui/components/data_form.dart';
 import 'package:football_news/ui/components/layout.dart';
 import 'package:football_news/ui/components/button.dart';
-import 'package:football_news/ui/partials/sign_in.dart';
-import 'package:football_news/ui/partials/sign_up.dart';
+import 'package:football_news/ui/components/text_input.dart';
+import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:get/get.dart';
 
 class Auth extends StatefulWidget {
@@ -20,8 +20,18 @@ class Auth extends StatefulWidget {
 
 class _AuthState extends State<Auth> {
   final _formKey = GlobalKey<FormBuilderState>();
-  bool _isSignUp = false;
-  bool _isErr = false;
+  var _isSignUp = false;
+  var _ckpassword = '';
+  var _isVisible = false;
+  var _isConfirm = false;
+  final pController = TextEditingController();
+  final cController = TextEditingController();
+
+  void _resetPasswordFields() {
+    pController.clear();
+    cController.clear();
+    setState(() => _ckpassword = '');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +47,8 @@ class _AuthState extends State<Auth> {
           _buildHeader(),
           const SizedBox(height: 8),
 
-          _isSignUp
-              ? SignUp(form: _formKey.currentState, isError: _isErr)
-              : SignIn(),
+          //Input Fields
+          _buildAuth(),
 
           // Forgot Password
           // if (!_isSignUp)
@@ -63,12 +72,11 @@ class _AuthState extends State<Auth> {
             if (err.isNotEmpty) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 MySnackBar.show(context, message: err, type: MessageType.error);
-                setState(() {
-                  _isErr = true;
-                });
+                _resetPasswordFields();
                 controller.hasError.value = ''; // clear so it won’t repeat
               });
             }
+
             return const SizedBox.shrink(); // placeholder widget
           }),
 
@@ -110,13 +118,17 @@ class _AuthState extends State<Auth> {
           MyButton(
             icon: Icons.g_mobiledata,
             label: 'Continue with Google',
-            onPressed: () {},
+            onPressed: () async {
+              await controller.signInWithGoogle();
+            },
             backgroundColor: Colors.green,
           ),
           MyButton(
             icon: Icons.facebook,
             label: 'Continue with Facebook',
-            onPressed: () {},
+            onPressed: () async {
+              await controller.signInWithFacebook();
+            },
             backgroundColor: Colors.blueAccent,
           ),
 
@@ -150,6 +162,81 @@ class _AuthState extends State<Auth> {
     );
   }
 
+  Widget _buildAuth() {
+    final form = _formKey.currentState;
+    return Wrap(
+      children: [
+        TextInput(
+          name: 'email',
+          label: 'Email',
+          keyboardType: TextInputType.emailAddress,
+          prefixIcon: const Icon(Icons.email_outlined),
+          validator: FormBuilderValidators.compose([
+            FormBuilderValidators.required(errorText: 'Email is required'),
+            FormBuilderValidators.email(errorText: 'Enter a valid email'),
+          ]),
+        ),
+
+        TextInput(
+          name: 'password',
+          label: 'Password',
+          controller: pController,
+          keyboardType: TextInputType.visiblePassword,
+          prefixIcon: const Icon(Icons.lock_outline_rounded),
+          obscureText: !_isVisible,
+          onChanged: (value) {
+            setState(() => _ckpassword = value ?? '');
+
+            // Trigger revalidation of confirm_password when password changes
+            form?.fields['confirm']?.validate();
+          },
+          suffixIcon: IconButton(
+            icon: Icon(
+              _isVisible
+                  ? Icons.visibility_outlined
+                  : Icons.visibility_off_outlined,
+            ),
+            onPressed: () => setState(() => _isVisible = !_isVisible),
+          ),
+          validator: FormBuilderValidators.compose([
+            FormBuilderValidators.required(errorText: 'Password is required'),
+            FormBuilderValidators.minLength(
+              6,
+              errorText: 'Password must be at least 6 characters',
+            ),
+          ]),
+        ),
+
+        if (_isSignUp)
+          TextInput(
+            name: 'confirm',
+            label: 'Confirm',
+            controller: cController,
+            keyboardType: TextInputType.visiblePassword,
+            prefixIcon: const Icon(Icons.lock_outline_rounded),
+            obscureText: !_isConfirm,
+            suffixIcon: IconButton(
+              icon: Icon(
+                _isConfirm
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+              ),
+              onPressed: () => setState(() => _isConfirm = !_isConfirm),
+            ),
+            validator: (val) {
+              if (val == null || val.isEmpty) {
+                return 'Please confirm your password';
+              }
+              if (val != _ckpassword) {
+                return 'Passwords do not match';
+              }
+              return null;
+            },
+          ),
+      ],
+    );
+  }
+
   Widget _buildFooter() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -166,6 +253,7 @@ class _AuthState extends State<Auth> {
             setState(() {
               _isSignUp = !_isSignUp;
               _formKey.currentState?.reset();
+              _resetPasswordFields();
             });
           },
           child: Text(

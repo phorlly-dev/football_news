@@ -29,6 +29,10 @@ dependencies:
     provider:
     hashids2:
     timeago:
+    get_it:
+    intl:
+    cached_network_image:
+    flutter_animate:
     firebase_analytics:
     onesignal_flutter:
     flutter_screenutil:
@@ -36,13 +40,19 @@ dependencies:
     firebase_auth:
     google_sign_in:
     cloud_firestore:
+    flutter_facebook_auth:
+    equatable:
+    internet_connection_checker:
+    dartz:
+    hexcolor:
+    flutter_bloc:
 
 dev_dependencies:
     flutter_test:
         sdk: flutter
 
     # The "flutter_lints" package below contains a set of recommended lints to
-    flutter_lints: ^5.0.0
+    flutter_lints: ^6.0.0
 
 # The following section is specific to Flutter packages.
 flutter:

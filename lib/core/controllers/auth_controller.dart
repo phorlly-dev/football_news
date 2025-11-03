@@ -1,15 +1,18 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:football_news/core/configs/index.dart';
 import 'package:get/get.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthController extends GetxController {
   var hasError = ''.obs;
+  var infoMessage = ''.obs;
   var isLoading = false.obs;
   final _auth = Configure.auth;
   final _firestore = FirebaseFirestore.instance;
-  final _google = GoogleSignIn.instance;
+  final _facebook = FacebookAuth.instance;
+  final _google = Configure.signIn;
 
   Rxn<User> firebaseUser = Rxn<User>();
 
@@ -18,6 +21,8 @@ class AuthController extends GetxController {
     firebaseUser.bindStream(_auth.authStateChanges());
     super.onInit();
   }
+
+  bool get isLoggedIn => firebaseUser.value != null;
 
   // ---------- SIGN UP ----------
   Future<void> signUp({required String email, required String password}) async {
@@ -36,6 +41,7 @@ class AuthController extends GetxController {
         'created_at': FieldValue.serverTimestamp(),
         'updated_at': FieldValue.serverTimestamp(),
       });
+      infoMessage.value = 'Account Created.';
     } on FirebaseAuthException catch (e) {
       hasError.value = _handleError(e);
     } finally {
@@ -49,6 +55,7 @@ class AuthController extends GetxController {
     hasError.value = ''; // reset
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
+      infoMessage.value = 'Welcome Back!';
     } on FirebaseAuthException catch (e) {
       hasError.value = _handleError(e);
     } finally {
@@ -57,24 +64,51 @@ class AuthController extends GetxController {
   }
 
   Future<void> signInWithGoogle() async {
-    // Trigger the authentication flow
-    final googleUser = await _google.authenticate();
+    try {
+      // Trigger the authentication flow
+      final googleUser = await _google.authenticate();
 
-    // Obtain the auth details from the request
-    final googleAuth = googleUser.authentication;
+      // Obtain the auth details from the request
+      final googleAuth = googleUser.authentication;
 
-    // Create a new credential
-    final credential = GoogleAuthProvider.credential(
-      idToken: googleAuth.idToken,
-    );
+      // Create a new credential
+      final credential = GoogleAuthProvider.credential(
+        idToken: googleAuth.idToken,
+      );
 
-    // Once signed in, return the UserCredential
-    await _auth.signInWithCredential(credential);
+      // Once signed in, return the UserCredential
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      debugPrint('✅ Signed in as: ${userCredential.user?.email}');
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Firebase Auth error: ${e.message}');
+    } catch (e) {
+      debugPrint('Google Sign-In error: $e');
+    }
+  }
+
+  Future<void> signInWithFacebook() async {
+    // Trigger the sign-in flow
+    final result = await _facebook.login();
+
+    if (result.status == LoginStatus.success) {
+      final accessToken = result.accessToken!;
+      final credential = FacebookAuthProvider.credential(
+        accessToken.tokenString,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+      debugPrint('✅ Signed in as: ${userCredential.user?.email}');
+    } else {
+      print('Facebook login failed: ${result.status}');
+    }
   }
 
   // ---------- SIGN OUT ----------
   Future<void> signOut() async {
     await _auth.signOut();
+    await _google.signOut();
+    await _facebook.logOut();
   }
 
   // ---------- ERROR HANDLER ----------

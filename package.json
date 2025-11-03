@@ -10,7 +10,9 @@
         "clean": "flutter clean",
         "watch": "dart run build_runner watch -d",
         "get": "flutter pub upgrade",
-        "release": "flutter build appbundle --release"
+        "release": "flutter build appbundle --release",
+        "verify": "keytool -list -v -keystore android/app/keystore-release.jks -alias upload",
+        "keyhash": "keytool -exportcert -alias upload -keystore android/app/keystore-release.jks | openssl sha1 -binary | openssl base64"
     },
     "keywords": [],
     "author": "",

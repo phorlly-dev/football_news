@@ -1,3 +1,14 @@
+import java.util.Properties
+import java.io.FileInputStream
+
+// Load key.properties
+val keyProperties = Properties()
+val keyPropertiesFile = rootProject.file("key.properties")
+if (keyPropertiesFile.exists()) {
+    keyProperties.load(FileInputStream(keyPropertiesFile))
+}
+
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -14,6 +25,12 @@ dependencies {
 
     // When using the BoM, don't specify versions in Firebase dependencies
     implementation("com.google.firebase:firebase-analytics")
+  
+    //   implementation("androidx.core:core:1.12.0") // ensure this is updated
+  coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+
+  //onesignal
+  implementation("com.onesignal:OneSignal:[5.1.6, 5.1.99]")
 }
 
 android {
@@ -41,11 +58,28 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file(keyProperties["storeFile"] as String)
+            storePassword = keyProperties["storePassword"] as String
+            keyAlias = keyProperties["keyAlias"] as String
+            keyPassword = keyProperties["keyPassword"] as String
+        }
+    }
+
+
     buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+        // release {
+        //     // TODO: Add your own signing config for the release build.
+        //     // Signing with the debug keys for now, so `flutter run --release` works.
+        //     signingConfig = signingConfigs.getByName("debug")
+        // }
+
+        getByName("release") {
+        isMinifyEnabled = true // Enable code shrinking
+        isShrinkResources = true // Enable resource shrinking
+        signingConfig = signingConfigs.getByName("release")
+        proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 }

@@ -2,6 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 class NotificationPrefs {
+  NotificationPrefs._();
   static late SharedPreferences _sp;
   static final _user = OneSignal.User;
 

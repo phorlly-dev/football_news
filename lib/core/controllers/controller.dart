@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -7,9 +6,10 @@ import 'package:firebase_database/firebase_database.dart';
 /// A generic GetX controller for Firebase Realtime Database.
 /// Provides CRUD + realtime streams with automatic reactive updates.
 abstract class Controller<T> extends GetxController {
+  final cnx = GetConnect();
   final DatabaseReference _db;
   final String path;
-  final T Function(Map<String, dynamic>) fromJson;
+  final T Function(Map<String, dynamic> json) fromJson;
   late StreamSubscription _sub;
 
   Controller({required this.path, required this.fromJson})
@@ -31,6 +31,7 @@ abstract class Controller<T> extends GetxController {
       _safeCall(() => ref.update(value));
 
   Future<String> push(Map<String, dynamic> value) async {
+    cnx.get('url', query: {'d': 1});
     return _safeCall(() async {
       final newRef = ref.push();
       final key = newRef.key;
